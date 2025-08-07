@@ -44,6 +44,8 @@ AxI-budgetは、全てのお金の流れを記録しつつ、実際の支出の�
 - Terraform (Infrastructure as Code)
 - GitHub Actions (CI/CD)
 
+![architecture diagram](docs/infra-architecture.png)
+
 ## 🚀 クイックスタート
 
 ### 前提条件
