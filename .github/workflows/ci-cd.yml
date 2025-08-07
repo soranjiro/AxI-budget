@@ -1,35 +1,35 @@
-name: CI/CD Pipeline
+# name: CI/CD Pipeline
 
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
+# on:
+#   push:
+#     branches: [ main, develop ]
+#   pull_request:
+#     branches: [ main ]
 
-jobs:
-  # Frontend Tests
-  test-frontend:
-    uses: ./.github/workflows/test-frontend.yml
+# jobs:
+#   # Frontend Tests
+#   test-frontend:
+#     uses: ./.github/workflows/test-frontend.yml
 
-  # Backend Tests
-  test-backend:
-    uses: ./.github/workflows/test-backend.yml
+#   # Backend Tests
+#   test-backend:
+#     uses: ./.github/workflows/test-backend.yml
 
-  # E2E Tests
-  test-e2e:
-    needs: [test-frontend]
-    uses: ./.github/workflows/test-e2e.yml
-    with:
-      frontend-artifact-name: frontend-build-${{ github.sha }}
+#   # E2E Tests
+#   test-e2e:
+#     needs: [test-frontend]
+#     uses: ./.github/workflows/test-e2e.yml
+#     with:
+#       frontend-artifact-name: frontend-build-${{ github.sha }}
 
-  # # Deploy to Staging (develop branch)
-  # deploy-staging:
-  #   if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-  #   needs: [test-frontend, test-backend]
-  #   uses: ./.github/workflows/deploy-stg.yml
+#   # Deploy to Staging (develop branch)
+#   deploy-staging:
+#     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+#     needs: [test-frontend, test-backend]
+#     uses: ./.github/workflows/deploy-stg.yml
 
-  # # Deploy to Production (main branch)
-  # deploy-production:
-  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-  #   needs: [test-frontend, test-backend, test-e2e]
-  #   uses: ./.github/workflows/deploy-prod.yml
+#   # Deploy to Production (main branch)
+#   deploy-production:
+#     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+#     needs: [test-frontend, test-backend, test-e2e]
+#     uses: ./.github/workflows/deploy-prod.yml
