@@ -1,48 +1,3 @@
-# DynamoDB Table
-resource "aws_dynamodb_table" "main" {
-  name         = "${var.project_name}-${var.environment}"
-  billing_mode = var.dynamodb_billing_mode
-  hash_key     = "PK"
-  range_key    = "SK"
-
-  attribute {
-    name = "PK"
-    type = "S"
-  }
-
-  attribute {
-    name = "SK"
-    type = "S"
-  }
-
-  attribute {
-    name = "GSI1PK"
-    type = "S"
-  }
-
-  attribute {
-    name = "GSI1SK"
-    type = "S"
-  }
-
-  global_secondary_index {
-    name            = "GSI1"
-    hash_key        = "GSI1PK"
-    range_key       = "GSI1SK"
-    projection_type = "ALL"
-  }
-
-  point_in_time_recovery {
-    enabled = true
-  }
-
-  tags = {
-    Name = "${var.project_name}-${var.environment}-table"
-  }
-
-  deletion_protection_enabled = var.enable_deletion_protection
-}
-
 # Lambda Execution Role
 resource "aws_iam_role" "lambda_execution_role" {
   name = "${var.project_name}-${var.environment}-lambda-role"
@@ -81,8 +36,8 @@ resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
           "dynamodb:BatchWriteItem"
         ]
         Resource = [
-          aws_dynamodb_table.main.arn,
-          "${aws_dynamodb_table.main.arn}/index/*"
+          var.dynamodb_table_arn,
+          "${var.dynamodb_table_arn}/index/*"
         ]
       }
     ]
@@ -107,7 +62,7 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      DYNAMODB_TABLE_NAME = aws_dynamodb_table.main.name
+      DYNAMODB_TABLE_NAME = var.dynamodb_table_name
       ENVIRONMENT         = var.environment
     }
   }
@@ -133,5 +88,5 @@ data "archive_file" "lambda_placeholder" {
 # CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "lambda_logs" {
   name              = "/aws/lambda/${var.project_name}-${var.environment}-api"
-  retention_in_days = 14
+  retention_in_days = var.log_retention_days
 }

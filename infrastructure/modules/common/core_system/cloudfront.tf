@@ -1,59 +1,8 @@
-# S3 Bucket for Web Hosting
-resource "aws_s3_bucket" "web_hosting" {
-  bucket = "${var.project_name}-${var.environment}-web-hosting"
-}
-
-resource "aws_s3_bucket_public_access_block" "web_hosting" {
-  bucket = aws_s3_bucket.web_hosting.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-resource "aws_s3_bucket_policy" "web_hosting" {
-  bucket     = aws_s3_bucket.web_hosting.id
-  depends_on = [aws_s3_bucket_public_access_block.web_hosting]
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "PublicReadGetObject"
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.web_hosting.arn}/*"
-      }
-    ]
-  })
-}
-
-resource "aws_s3_bucket_website_configuration" "web_hosting" {
-  bucket = aws_s3_bucket.web_hosting.id
-
-  index_document {
-    suffix = "index.html"
-  }
-
-  error_document {
-    key = "index.html"
-  }
-}
-
-resource "aws_s3_bucket_versioning" "web_hosting" {
-  bucket = aws_s3_bucket.web_hosting.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
 # CloudFront Distribution
 resource "aws_cloudfront_distribution" "main" {
   origin {
-    domain_name = aws_s3_bucket_website_configuration.web_hosting.website_endpoint
-    origin_id   = "S3-${aws_s3_bucket.web_hosting.bucket}"
+    domain_name = var.s3_website_endpoint
+    origin_id   = "S3-${var.s3_bucket_name}"
 
     custom_origin_config {
       http_port              = 80
@@ -70,7 +19,7 @@ resource "aws_cloudfront_distribution" "main" {
   default_cache_behavior {
     allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = "S3-${aws_s3_bucket.web_hosting.bucket}"
+    target_origin_id       = "S3-${var.s3_bucket_name}"
     compress               = true
     viewer_protocol_policy = "redirect-to-https"
 
@@ -101,7 +50,7 @@ resource "aws_cloudfront_distribution" "main" {
     response_page_path    = "/index.html"
   }
 
-  price_class = "PriceClass_All"
+  price_class = var.cloudfront_price_class
 
   restrictions {
     geo_restriction {

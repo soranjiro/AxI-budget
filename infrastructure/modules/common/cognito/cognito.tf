@@ -48,12 +48,12 @@ resource "aws_cognito_user_pool_client" "main" {
   explicit_auth_flows = [
     "ALLOW_USER_SRP_AUTH",
     "ALLOW_REFRESH_TOKEN_AUTH",
-    "ALLOW_CUSTOM_AUTH"
+    "ALLOW_ADMIN_USER_PASSWORD_AUTH"
   ]
 
   # トークン設定
-  access_token_validity  = 60 # 1時間
-  id_token_validity      = 60 # 1時間
+  access_token_validity  = 60 # 60分
+  id_token_validity      = 60 # 60分
   refresh_token_validity = 30 # 30日
 
   token_validity_units {
@@ -62,28 +62,30 @@ resource "aws_cognito_user_pool_client" "main" {
     refresh_token = "days"
   }
 
+  # セキュリティ設定
+  generate_secret               = false
+  prevent_user_existence_errors = "ENABLED"
+
   # OAuth設定
-  allowed_oauth_flows_user_pool_client = true
-  allowed_oauth_flows                  = ["code", "implicit"]
-  allowed_oauth_scopes                 = ["email", "openid", "profile"]
-
-  callback_urls = var.environment == "prod" ? ["https://${var.domain_name}"] : ["http://localhost:3000", "https://${var.project_name}-${var.environment}.s3-website-${var.aws_region}.amazonaws.com"]
-
-  logout_urls = var.environment == "prod" ? ["https://${var.domain_name}"] : ["http://localhost:3000", "https://${var.project_name}-${var.environment}.s3-website-${var.aws_region}.amazonaws.com"]
-
-  # CORS設定
   supported_identity_providers = ["COGNITO"]
 
-  # セキュリティ設定
-  prevent_user_existence_errors = "ENABLED"
+  allowed_oauth_flows                  = ["implicit", "code"]
+  allowed_oauth_scopes                 = ["email", "openid", "profile"]
+  allowed_oauth_flows_user_pool_client = true
+
+  # コールバックURL（開発環境用）
+  callback_urls = var.cognito_callback_urls
+  logout_urls   = var.cognito_logout_urls
+
+  # CORS設定
+  read_attributes  = ["email", "email_verified"]
+  write_attributes = ["email"]
 }
 
 # Identity Pool
 resource "aws_cognito_identity_pool" "main" {
-  identity_pool_name = "${var.project_name}-${var.environment}-identity-pool"
-
+  identity_pool_name               = "${var.project_name}-${var.environment}-identity-pool"
   allow_unauthenticated_identities = true
-  allow_classic_flow               = false
 
   cognito_identity_providers {
     client_id               = aws_cognito_user_pool_client.main.id
@@ -97,18 +99,15 @@ resource "aws_cognito_identity_pool" "main" {
 }
 
 # IAM Role for authenticated users
-resource "aws_iam_role" "authenticated_role" {
-  name = "${var.project_name}-${var.environment}-authenticated-role"
+resource "aws_iam_role" "authenticated" {
+  name = "${var.project_name}-${var.environment}-cognito-authenticated"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Principal = {
-          Federated = "cognito-identity.amazonaws.com"
-        }
         Action = "sts:AssumeRoleWithWebIdentity"
+        Effect = "Allow"
         Condition = {
           StringEquals = {
             "cognito-identity.amazonaws.com:aud" = aws_cognito_identity_pool.main.id
@@ -117,24 +116,28 @@ resource "aws_iam_role" "authenticated_role" {
             "cognito-identity.amazonaws.com:amr" = "authenticated"
           }
         }
+        Principal = {
+          Federated = "cognito-identity.amazonaws.com"
+        }
       }
     ]
   })
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-cognito-authenticated"
+  }
 }
 
 # IAM Role for unauthenticated users
-resource "aws_iam_role" "unauthenticated_role" {
-  name = "${var.project_name}-${var.environment}-unauthenticated-role"
+resource "aws_iam_role" "unauthenticated" {
+  name = "${var.project_name}-${var.environment}-cognito-unauthenticated"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Principal = {
-          Federated = "cognito-identity.amazonaws.com"
-        }
         Action = "sts:AssumeRoleWithWebIdentity"
+        Effect = "Allow"
         Condition = {
           StringEquals = {
             "cognito-identity.amazonaws.com:aud" = aws_cognito_identity_pool.main.id
@@ -143,15 +146,22 @@ resource "aws_iam_role" "unauthenticated_role" {
             "cognito-identity.amazonaws.com:amr" = "unauthenticated"
           }
         }
+        Principal = {
+          Federated = "cognito-identity.amazonaws.com"
+        }
       }
     ]
   })
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-cognito-unauthenticated"
+  }
 }
 
-# 認証ユーザー用のポリシー
-resource "aws_iam_role_policy" "authenticated_policy" {
-  name = "${var.project_name}-${var.environment}-authenticated-policy"
-  role = aws_iam_role.authenticated_role.id
+# IAM Policy for authenticated users
+resource "aws_iam_role_policy" "authenticated" {
+  name = "${var.project_name}-${var.environment}-cognito-authenticated-policy"
+  role = aws_iam_role.authenticated.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -159,18 +169,28 @@ resource "aws_iam_role_policy" "authenticated_policy" {
       {
         Effect = "Allow"
         Action = [
-          "execute-api:Invoke"
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
         ]
-        Resource = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
+        Resource = var.dynamodb_table_arn
+        Condition = {
+          "ForAllValues:StringEquals" = {
+            "dynamodb:LeadingKeys" = ["$${cognito-identity.amazonaws.com:sub}"]
+          }
+        }
       }
     ]
   })
 }
 
-# 未認証ユーザー用のポリシー（制限付きアクセス）
-resource "aws_iam_role_policy" "unauthenticated_policy" {
-  name = "${var.project_name}-${var.environment}-unauthenticated-policy"
-  role = aws_iam_role.unauthenticated_role.id
+# IAM Policy for unauthenticated users (read-only access)
+resource "aws_iam_role_policy" "unauthenticated" {
+  name = "${var.project_name}-${var.environment}-cognito-unauthenticated-policy"
+  role = aws_iam_role.unauthenticated.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -178,9 +198,10 @@ resource "aws_iam_role_policy" "unauthenticated_policy" {
       {
         Effect = "Allow"
         Action = [
-          "execute-api:Invoke"
+          "dynamodb:GetItem",
+          "dynamodb:Query"
         ]
-        Resource = "${aws_apigatewayv2_api.main.execution_arn}/*/GET/*"
+        Resource = var.dynamodb_table_arn
       }
     ]
   })
@@ -191,13 +212,7 @@ resource "aws_cognito_identity_pool_roles_attachment" "main" {
   identity_pool_id = aws_cognito_identity_pool.main.id
 
   roles = {
-    "authenticated"   = aws_iam_role.authenticated_role.arn
-    "unauthenticated" = aws_iam_role.unauthenticated_role.arn
+    "authenticated"   = aws_iam_role.authenticated.arn
+    "unauthenticated" = aws_iam_role.unauthenticated.arn
   }
-}
-
-# Cognito Domain (optional)
-resource "aws_cognito_user_pool_domain" "main" {
-  domain       = "${var.project_name}-${var.environment}-auth"
-  user_pool_id = aws_cognito_user_pool.main.id
 }

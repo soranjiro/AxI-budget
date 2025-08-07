@@ -1,0 +1,22 @@
+# サンプル terraform.tfvars
+# このファイルをコピーして terraform.tfvars を作成してください
+# terraform.tfvars は .gitignore に含まれているため、個人の設定情報は安全です
+
+# AWS Profile (required)
+aws_profile = "axi-budget-prod"  # または "axi-budget-stg"
+
+# Project Configuration
+project_name = "axi-budget"
+environment  = "prod"  # または "stg"
+aws_region   = "ap-northeast-1"
+
+# Cognito Configuration
+cognito_callback_urls = [
+  "https://your-production-domain.com",
+  "http://localhost:3000"
+]
+
+cognito_logout_urls = [
+  "https://your-production-domain.com",
+  "http://localhost:3000"
+]
