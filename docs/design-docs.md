@@ -54,7 +54,8 @@
 | | Vite | 高速なビルドと開発環境 |
 | | Tailwind CSS | 効率的なユーティリティファーストのスタイリング |
 | | Zustand | シンプルで強力な状態管理 |
-| | Chart.js / Recharts | データの可視化、グラフ表示 |
+| | Recharts | データの可視化、グラフ表示（棒グラフ、円グラフ、線グラフ、プログレスバー） |
+| | IndexedDB | 大容量ローカルデータストレージ（トランザクション処理対応） |
 | **PWA関連** | Workbox | Service Workerの管理とオフライン対応 |
 | | Web App Manifest | ホーム画面へのインストール対応 |
 | **バックエンド** | AWS Lambda (Rust) | サーバーレスでのビジネスロジック実行 |
@@ -68,10 +69,22 @@
 
 ### 3.2 PWA要件
 *   **インストール可能**: ホーム画面への追加（Add to Home Screen）に対応します。
-*   **オフライン動作**: Service Workerを利用したキャッシュ戦略により、オフラインでもコア機能が利用可能です。
+*   **オフライン動作**: Service Workerを利用したキャッシュ戦略により、オフラインでもコア機能が利用可能です。IndexedDBによるローカルデータ永続化で完全なオフライン体験を提供します。
 *   **レスポンシブ**: モバイル、タブレット、デスクトップの各デバイスに最適化されたUIを提供します。
 *   **高速**: First Contentful Paint (FCP) を2秒未満に抑え、快適なユーザー体験を実現します。
 *   **信頼性**: ネットワークが不安定な状況でも、主要な機能が安定して動作します。
+*   **ゲストモード**: ユーザー登録なしで全機能が利用可能。データはローカルに安全に保存されます。
+
+### 3.3 ローカルデータストレージ仕様
+*   **IndexedDB**: ブラウザの高性能NoSQLデータベースを採用
+*   **データベース名**: `AxiBudgetDB` (version 1)
+*   **オブジェクトストア**:
+    - `transactions`: 取引データ（インデックス: date, category, type, transactionType, budgetId, createdAt）
+    - `budgets`: 予算データ（インデックス: category, period, createdAt）
+    - `auth`: 認証データ（ゲストユーザー情報、設定など）
+*   **容量**: 最大数百MB（ブラウザ依存）
+*   **パフォーマンス**: インデックス付きクエリによる高速検索
+*   **ACID特性**: トランザクション処理によるデータ整合性保証
 
 ---
 
@@ -83,26 +96,27 @@
 ┌─────────────────┐       ┌──────────────────────────────────────────────────────┐
 │   PWA Client    │       │                      AWS Cloud                       │
 │  (React + TS)   ├───────┼▶ Amazon CloudFront (CDN) ◀────▶ Amazon S3          │
-│ └─ API Client ──┘       │                             (PWA静的ファイルホスティング)│
-└─────────────────┘       │                                                      │
-         ▲                └──────────────────────────────────────────────────────┘
-         │ (Generated Typed API Call)
-         ▼
-┌──────────────────────────────────────────────────────┐
-│                      AWS Cloud                       │
-│                                                      │
-│ ┌─────────────┐            ┌──────────────────┐            ┌─────────────┐
-│ │ OpenAPI     ├─(Generate)─▶│   AWS Lambda     ├─(TDD/DDD)─▶│ Amazon      │
-│ │ Schema (API)│            │   (Rust)         │            │ DynamoDB    │
-│ │             ├─(Generate)─▶│ (Domain Logic)   │            │             │
-│ └─────────────┘            └──────────────────┘            └─────────────┘
-│        ▲
-│        │ (Implements)
-│ ┌────────────────┐
-│ │ Amazon         │
-│ │ API Gateway    │
-│ └────────────────┘
-└──────────────────────────────────────────────────────┘
+│ ┌─ IndexedDB ───┤       │                             (PWA静的ファイルホスティング)│
+│ │ ┌─────────────┴─┐     │                                                      │
+│ │ │ Local Storage │     └──────────────────────────────────────────────────────┘
+│ │ │ AxiBudgetDB   │              ▲
+│ │ │ - transactions│              │ (Generated Typed API Call)
+│ │ │ - budgets     │              ▼
+│ │ │ - auth        │     ┌──────────────────────────────────────────────────────┐
+│ │ └───────────────┘     │                      AWS Cloud                       │
+│ └─ API Client ──────────┤                                                      │
+└─────────────────┘       │ ┌─────────────┐            ┌──────────────────┐            ┌─────────────┐
+         ▲                │ │ OpenAPI     ├─(Generate)─▶│   AWS Lambda     ├─(TDD/DDD)─▶│ Amazon      │
+         │                │ │ Schema (API)│            │   (Rust)         │            │ DynamoDB    │
+         │ (Guest Mode:   │ │             ├─(Generate)─▶│ (Domain Logic)   │            │             │
+         │  Local Only)   │ └─────────────┘            └──────────────────┘            └─────────────┘
+         │                │        ▲
+         │ (Authenticated:│        │ (Implements)
+         │  Sync to Cloud)│ ┌────────────────┐
+         └────────────────┼─│ Amazon         │
+                          │ │ API Gateway    │
+                          │ └────────────────┘
+                          └──────────────────────────────────────────────────────┘
 ```
 
 ### 4.2 開発ワークフロー
@@ -115,14 +129,111 @@
 4.  **(フロントエンド)** 自動生成されたAPIクライアントを使い、モックサーバーを立ててUI開発を並行して進めます。
 5.  **インテグレーション:** バックエンドのLambda関数をAPI Gatewayに接続し、フロントエンドと結合して動作を検証します。
 
+### 4.3 ローカルファースト開発アプローチ
+現在の実装では、ローカルファーストのアプローチを採用しています：
+
+1.  **[ローカル開発]** IndexedDBを使用した完全なローカル機能を先行実装
+2.  **[型安全性]** TypeScriptによる厳密な型定義とコンポーネント設計
+3.  **[状態管理]** Zustandによる軽量で高性能な状態管理
+4.  **[データ永続化]** IndexedDBによる大容量データの非同期処理
+5.  **[将来拡張]** クラウド同期機能への移行準備（同一のデータモデル使用）
+
+### 4.4 ハイブリッド同期戦略（将来実装）
+```
+┌─────────────────────────┐    ┌─────────────────────────┐
+│     Local (IndexedDB)   │    │      Cloud (DynamoDB)   │
+│  ┌─────────────────────┐│    │  ┌─────────────────────┐│
+│  │ Primary Data Store  ││◀──▶│  │ Backup & Sync Store ││
+│  │ - Transactions      ││    │  │ - User Profile      ││
+│  │ - Budgets          ││    │  │ - Cross-device Data ││
+│  │ - Local Settings   ││    │  │ - Group Sharing     ││
+│  └─────────────────────┘│    │  └─────────────────────┘│
+└─────────────────────────┘    └─────────────────────────┘
+           ▲                                    ▲
+           │                                    │
+    ┌──────▼────────┐                  ┌───────▼────────┐
+    │ Offline Mode  │                  │ Sync Service   │
+    │ (Full Feature)│                  │ (Conflict Res.)│
+    └───────────────┘                  └────────────────┘
+```
+
 ---
 
-## 5. データベース設計 (Amazon DynamoDB)
+## 5. データベース設計
 
 ### 5.1 設計思想
+DDDの概念を反映し、ローカルとクラウドの両方に対応した二層データベース設計を採用します。ローカルではIndexedDBによる高性能なクライアントサイドストレージ、クラウドではDynamoDBによるシングルテーブルデザインを使用し、両者間でのデータ同期を可能にします。
+
+### 5.2 ローカルデータベース設計 (IndexedDB)
+
+#### 5.2.1 データベース構造
+```typescript
+// データベース: AxiBudgetDB (version: 1)
+interface DatabaseSchema {
+  transactions: {
+    keyPath: 'id'
+    indexes: {
+      date: string
+      category: string
+      type: 'expense' | 'income'
+      transactionType: 'personal' | 'advance'
+      budgetId?: string
+      createdAt: string
+    }
+  }
+  budgets: {
+    keyPath: 'id'
+    indexes: {
+      category: string
+      period: 'monthly' | 'yearly'
+      createdAt: string
+    }
+  }
+  auth: {
+    keyPath: 'key'
+    // ゲストユーザー情報、設定、認証状態
+  }
+}
+```
+
+#### 5.2.2 エンティティ設計
+
+**Transaction エンティティ**
+```typescript
+interface Transaction {
+  id: string                           // ユニークID（例: "transaction-1691234567890-abc123"）
+  description: string                  // 取引の説明
+  amount: number                       // 金額
+  category: string                     // カテゴリ（"食費", "交通費", "娯楽費", "生活費", "その他"）
+  type: 'expense' | 'income'          // 収支種別
+  transactionType: 'personal' | 'advance' // 実支出 or 立て替え
+  date: string                        // 取引日（YYYY-MM-DD）
+  tags: string[]                      // タグ配列
+  budgetId?: string                   // 関連予算ID（オプション）
+  createdAt: string                   // 作成日時（ISO 8601）
+  updatedAt: string                   // 更新日時（ISO 8601）
+}
+```
+
+**Budget エンティティ**
+```typescript
+interface Budget {
+  id: string                          // ユニークID（例: "budget-1691234567890-def456"）
+  name: string                        // 予算名
+  amount: number                      // 予算金額
+  category: string                    // 対象カテゴリ
+  period: 'monthly' | 'yearly'       // 期間
+  spent: number                       // 使用済み金額（計算値）
+  createdAt: string                   // 作成日時（ISO 8601）
+  updatedAt: string                   // 更新日時（ISO 8601）
+}
+```
+
+### 5.3 クラウドデータベース設計 (Amazon DynamoDB)
+
 DDDの概念を反映し、シングルテーブルデザインを採用します。パーティションキー（PK）とソートキー（SK）を組み合わせることで、ドメインモデルのエンティティや集約ルートを効率的に表現し、関連データを一度のクエリで取得できるようにします。
 
-### 5.2 DynamoDB スキーマ
+#### 5.3.1 DynamoDB スキーマ
 
 | PK (パーティションキー) | SK (ソートキー) | `type` 属性 | 備考 |
 | :--- | :--- | :--- | :--- |
@@ -135,6 +246,20 @@ DDDの概念を反映し、シングルテーブルデザインを採用しま�
 | `GROUP#<GroupID>` | `TX#<Timestamp>#<TxID>` | `GroupTransaction` | グループに属する**共有取引エンティティ**。 |
 | `GROUP#<GroupID>` | `SETTLEMENT#<SettlementID>` | `Settlement` | グループに紐づく**精算エンティティ**。 |
 
+#### 5.3.2 データ同期戦略
+
+**同期モード**
+1. **ローカルファースト**: 全操作をローカルで実行後、バックグラウンドで同期
+2. **競合解決**: Last-Write-Wins（最終書き込み勝利）+ タイムスタンプベース
+3. **差分同期**: 変更分のみを同期してトラフィックを最小化
+
+**同期フロー**
+```
+[Local Operation] → [Local IndexedDB] → [Sync Queue] → [Cloud DynamoDB]
+                                    ↓
+[Conflict Detection] ← [Merge Strategy] ← [Remote Changes]
+```
+
 *   **`type`属性の追加:** 各アイテムの種類を明示する属性を追加。これにより、DynamoDB Streamsなどでデータを処理する際に、アイテムの種類を判別しやすくなります。これはDDDのドメインイベントの概念にも通じます。
 
 ---
@@ -143,21 +268,55 @@ DDDの概念を反映し、シングルテーブルデザインを採用しま�
 
 ### 6.1 取引管理機能
 *   **取引登録:** 金額、説明、カテゴリ、取引種別（実支出/立て替え/グループ）、日付などを入力します。よく使う取引はテンプレートとして保存可能です。
-*   **取引一覧・検索:** 期間、種別、カテゴリ、金額範囲などで柔軟にフィルタリング・ソートができます。
+*   **取引一覧・検索:** 期間、種別、カテゴリ、金額範囲などで柔軟にフィルタリング・ソートができます。IndexedDBのインデックスによる高速検索を実現。
+*   **非同期処理:** 全ての操作は非同期で実行され、UIブロッキングを回避します。
 
 ### 6.2 家計管理機能
 *   **月次サマリー:** `Real`（実支出）取引のみを集計し、カテゴリ別の支出グラフや前月比、予算達成度を可視化します。
 *   **予算管理:** 月次やカテゴリ別に予算を設定し、使用状況をリアルタイムで追跡。設定した閾値（例：80%）を超えるとアラート通知を行います。
 *   **レポート機能:** 月次・年次レポートを生成し、CSVやPDF形式でエクスポートできます。
 
-### 6.3 立て替え精算機能
+### 6.3 分析・レポート機能（実装済み）
+*   **包括的な分析ダッシュボード:**
+    - 概要タブ: 財務状況の全体サマリー
+    - 予算分析タブ: 予算対実績の詳細比較とプログレスバー
+    - カテゴリ分析タブ: 支出パターンの円グラフ分析
+    - トレンド分析タブ: 時系列での月次・日次変化線グラフ
+    - 前払い分析タブ: 前払い取引の管理と追跡
+
+*   **高度な統計計算:**
+    - 総収入・総支出・残高の自動計算
+    - 月間平均値、最大・最小取引額の算出
+    - 取引件数の統計情報
+    - カテゴリ別支出割合の分析
+
+*   **リアルタイム可視化:**
+    - Rechartsライブラリによる美しいグラフ描画
+    - 棒グラフ（月次トレンド）、円グラフ（カテゴリ分析）、線グラフ（日次推移）
+    - インタラクティブなデータ表示とホバー効果
+
+### 6.4 立て替え精算機能
 *   **立て替え登録:** `Flow`（立て替え）取引として記録し、相手と金額を管理します。
 *   **精算管理:** 誰にいくら立て替えているか、誰から返済してもらうかを一覧で確認できます。精算が完了したらステータスを更新します。
 
-### 6.4 グループ機能
+### 6.5 グループ機能
 *   **グループ作成・参加:** ユーザー登録不要でグループを作成し、6桁の参加コードやQRコードでメンバーを招待できます。グループは一定期間（例: 30日）で自動的にアーカイブされます。
 *   **グループ取引管理:** グループ内で発生した支出を登録すると、メンバー間でリアルタイムに共有されます。支払い対象者や分割方法（均等、個別設定など）を指定可能です。
 *   **最適精算計算:** 債務グラフを利用したアルゴリズムにより、グループ内での送金回数が最小になるような最適な精算プランを自動で計算し提示します。
+
+### 6.6 ゲストモード機能（実装済み）
+*   **完全ローカル動作:** ユーザー登録なしで全機能が利用可能
+*   **データ永続化:** IndexedDBによる安全なローカルデータ保存
+*   **認証フロー:**
+    - ゲストユーザーの自動生成（`guest-{timestamp}`形式のID）
+    - AWS Cognitoへの後からのアップグレード対応
+    - データの継続性保証
+
+### 6.7 PWA機能
+*   **オフライン対応:** Service Workerによる完全なオフライン動作
+*   **インストール可能:** Add to Home Screen対応
+*   **プッシュ通知:** 予算超過アラート（将来実装）
+*   **バックグラウンド同期:** ネットワーク復帰時の自動データ同期（将来実装）
 
 ---
 
@@ -185,7 +344,31 @@ DDDの概念を反映し、シングルテーブルデザインを採用しま�
 
 ### 7.3 フロントエンドのテスト実践 (React)
 *   **ユニットテスト (Vitest + React Testing Library):** 状態管理ロジック（Zustandストア）や、UIコンポーネントが与えられたpropsに対して正しく描画されるかをテストします。
+*   **IndexedDBテスト:** IndexedDBの操作をモックし、データの永続化とクエリ機能をテストします。
+*   **非同期処理テスト:** async/awaitを使用したデータ操作の正常性とエラーハンドリングをテストします。
 *   **E2Eテスト (Playwright):** 「ユーザーがログインし、取引を登録し、サマリー画面で支出が増えていることを確認する」といった一連のシナリオをブラウザ上で自動テストします。
+
+### 7.4 IndexedDBテスト戦略
+*   **データ整合性テスト:**
+    - 取引の追加・更新・削除操作の正確性
+    - インデックスベースのクエリパフォーマンス
+    - トランザクション処理の原子性
+*   **ブラウザ互換性テスト:**
+    - Chrome, Firefox, Safari, Edge での IndexedDB 動作確認
+    - ストレージ容量制限のテスト
+    - 異常終了時のデータ復旧テスト
+
+### 7.5 開発用テストユーティリティ（実装済み）
+*   **IndexedDB デバッグツール:**
+    ```javascript
+    // ブラウザコンソールで利用可能
+    indexedDBUtils.logAllData()          // 全データの確認
+    indexedDBUtils.importSampleData()    // サンプルデータ生成
+    indexedDBUtils.exportData()          // データエクスポート
+    indexedDBUtils.clearAllData()        // 全データクリア
+    ```
+*   **型安全性保証:** TypeScript による完全な型チェック
+*   **エラーハンドリング:** 非同期操作の例外処理とフォールバック機能
 
 ---
 
@@ -197,4 +380,150 @@ DDDの概念を反映し、シングルテーブルデザインを採用しま�
 
 ### 8.2 プライバシーへの配慮
 *   **個人情報の最小化:** ユーザー登録を必須とせず、匿名IDで機能を識別することで、収集する個人情報を最小限に留めます。
+*   **ローカルデータ管理:** ゲストモードでは全データがローカル（IndexedDB）に保存され、外部送信は一切行われません。
 *   **データ保持ポリシー:** グループデータは作成から30日が経過すると自動的にアーカイブされます。個人データはユーザー自身が管理・削除できます。
+*   **暗号化:** 将来的にはローカルデータの暗号化オプションを提供予定です。
+
+---
+
+## 9. 実装状況と技術詳細
+
+### 9.1 現在の実装状況（2025年8月8日時点）
+
+#### 9.1.1 完了済み機能
+*   ✅ **フロントエンド基盤**
+    - React 18 + TypeScript + Vite セットアップ
+    - Tailwind CSS デザインシステム
+    - App Router 形式のディレクトリ構造
+    - PWA対応（Service Worker, Web App Manifest）
+
+*   ✅ **データ管理システム**
+    - IndexedDB 完全実装（`AxiBudgetDB`）
+    - Zustand状態管理と永続化
+    - 非同期データ操作（CRUD）
+    - 型安全なデータアクセス層
+
+*   ✅ **認証システム**
+    - ゲストモード（ローカル完結）
+    - AWS Cognito連携準備
+    - 認証状態の永続化
+
+*   ✅ **コア機能**
+    - 取引管理（追加・編集・削除・検索）
+    - 予算管理（設定・追跡・進捗表示）
+    - ダッシュボード（概要表示）
+
+*   ✅ **分析・レポート機能**
+    - 5つの分析タブ（概要・予算・カテゴリ・トレンド・前払い）
+    - Recharts による豊富なグラフ表示
+    - 統計計算エンジン（`reportAnalyzer.ts`）
+    - リアルタイムデータ更新
+
+*   ✅ **開発支援ツール**
+    - IndexedDB デバッグユーティリティ
+    - サンプルデータ生成機能
+    - 型安全性保証
+
+#### 9.1.2 実装予定機能
+*   🔄 **立て替え精算機能**
+    - 精算計算アルゴリズム
+    - 多人数間の最適化計算
+
+*   🔄 **グループ機能**
+    - グループ作成・招待
+    - リアルタイム同期
+    - QRコード生成
+
+*   🔄 **クラウド同期**
+    - AWS Lambda (Rust) バックエンド
+    - DynamoDB データ同期
+    - 競合解決機能
+
+### 9.2 技術アーキテクチャ詳細
+
+#### 9.2.1 IndexedDB実装詳細
+```typescript
+// データベース構造
+const DB_CONFIG: DBConfig = {
+  name: 'AxiBudgetDB',
+  version: 1,
+  stores: [
+    {
+      name: 'transactions',
+      keyPath: 'id',
+      indexes: [
+        { name: 'date', keyPath: 'date' },
+        { name: 'category', keyPath: 'category' },
+        { name: 'type', keyPath: 'type' },
+        { name: 'transactionType', keyPath: 'transactionType' },
+        { name: 'budgetId', keyPath: 'budgetId' },
+        { name: 'createdAt', keyPath: 'createdAt' }
+      ]
+    },
+    // ... 他のストア定義
+  ]
+}
+```
+
+#### 9.2.2 状態管理アーキテクチャ
+```typescript
+// Zustand ストア設計
+interface TransactionState {
+  transactions: Transaction[]
+  isLoading: boolean
+  isInitialized: boolean
+
+  // 非同期操作メソッド
+  initStore: () => Promise<void>
+  addTransaction: (data: TransactionInput) => Promise<void>
+  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>
+  deleteTransaction: (id: string) => Promise<void>
+
+  // クエリメソッド
+  getTransactionById: (id: string) => Transaction | undefined
+  getTransactionsByDateRange: (start: string, end: string) => Transaction[]
+}
+```
+
+#### 9.2.3 コンポーネント設計パターン
+*   **Feature-based組織化:** 機能ごとのディレクトリ構造
+*   **再利用可能コンポーネント:** 共通UIコンポーネントの抽象化
+*   **非同期処理対応:** Loading状態とエラーハンドリング
+*   **型安全性:** TypeScript による厳密な型定義
+
+### 9.3 パフォーマンス最適化
+
+#### 9.3.1 IndexedDB最適化
+*   **インデックス戦略:** 頻繁なクエリに対する適切なインデックス設計
+*   **バッチ処理:** 大量データの効率的な処理
+*   **非同期処理:** UIブロッキングの回避
+
+#### 9.3.2 React最適化
+*   **メモ化:** React.memo, useMemo, useCallback の適切な使用
+*   **仮想化:** 大量リストの効率的な描画（将来実装）
+*   **コード分割:** 動的インポートによるバンドルサイズ最適化
+
+### 9.4 開発・デバッグツール
+
+#### 9.4.1 IndexedDB デバッグ機能
+開発者は以下のコマンドをブラウザコンソールで実行可能：
+
+```javascript
+// 全データの確認
+await indexedDBUtils.logAllData()
+
+// サンプルデータの追加
+await indexedDBUtils.importSampleData()
+
+// データのエクスポート
+const exportedData = await indexedDBUtils.exportData()
+
+// 全データのクリア
+await indexedDBUtils.clearAllData()
+```
+
+#### 9.4.2 ビルド・開発環境
+*   **Vite:** 高速な開発サーバーとビルド
+*   **TypeScript:** 厳密な型チェック
+*   **ESLint:** コード品質の保証
+*   **PWA Plugin:** 自動 Service Worker 生成
