@@ -53,7 +53,13 @@ export function BudgetList({ budgets }: BudgetListProps) {
                 <p className="text-sm text-gray-500">{budget.category} • {budget.period === 'monthly' ? '月次' : '年次'}</p>
               </div>
               <button
-                onClick={() => deleteBudget(budget.id)}
+                onClick={async () => {
+                  try {
+                    await deleteBudget(budget.id)
+                  } catch (error) {
+                    console.error('Failed to delete budget:', error)
+                  }
+                }}
                 className="text-gray-400 hover:text-red-500 text-sm"
               >
                 🗑️

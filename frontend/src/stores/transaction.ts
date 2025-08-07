@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { initDB, transactionDB } from '../utils/indexedDB'
 
 export interface Transaction {
   id: string
@@ -17,63 +17,112 @@ export interface Transaction {
 
 interface TransactionState {
   transactions: Transaction[]
-  addTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => void
-  updateTransaction: (id: string, updates: Partial<Transaction>) => void
-  deleteTransaction: (id: string) => void
+  isLoading: boolean
+  isInitialized: boolean
+  initStore: () => Promise<void>
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
+  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>
+  deleteTransaction: (id: string) => Promise<void>
   getTransactionById: (id: string) => Transaction | undefined
   getTransactionsByBudget: (budgetId: string) => Transaction[]
   getTransactionsByDateRange: (startDate: string, endDate: string) => Transaction[]
+  loadTransactions: () => Promise<void>
 }
 
-export const useTransactionStore = create<TransactionState>()(
-  persist(
-    (set, get) => ({
-      transactions: [],
+export const useTransactionStore = create<TransactionState>()((set, get) => ({
+  transactions: [],
+  isLoading: false,
+  isInitialized: false,
 
-      addTransaction: (transactionData) => {
-        const newTransaction: Transaction = {
-          ...transactionData,
-          id: `transaction-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-        set((state) => ({ transactions: [...state.transactions, newTransaction] }))
-      },
+  initStore: async () => {
+    if (get().isInitialized) return
 
-      updateTransaction: (id, updates) => {
-        set((state) => ({
-          transactions: state.transactions.map((transaction) =>
-            transaction.id === id
-              ? { ...transaction, ...updates, updatedAt: new Date().toISOString() }
-              : transaction
-          ),
-        }))
-      },
-
-      deleteTransaction: (id) => {
-        set((state) => ({
-          transactions: state.transactions.filter((transaction) => transaction.id !== id),
-        }))
-      },
-
-      getTransactionById: (id) => {
-        return get().transactions.find((transaction) => transaction.id === id)
-      },
-
-      getTransactionsByBudget: (budgetId) => {
-        return get().transactions.filter((transaction) => transaction.budgetId === budgetId)
-      },
-
-      getTransactionsByDateRange: (startDate, endDate) => {
-        return get().transactions.filter((transaction) => {
-          const transactionDate = new Date(transaction.date)
-          return transactionDate >= new Date(startDate) && transactionDate <= new Date(endDate)
-        })
-      },
-    }),
-    {
-      name: 'axi-budget-transactions',
-      version: 1,
+    try {
+      await initDB()
+      await get().loadTransactions()
+      set({ isInitialized: true })
+    } catch (error) {
+      console.error('Failed to initialize transaction store:', error)
     }
-  )
-)
+  },
+
+  loadTransactions: async () => {
+    try {
+      set({ isLoading: true })
+      const transactions = await transactionDB.getAll() as Transaction[]
+      set({ transactions, isLoading: false })
+    } catch (error) {
+      console.error('Failed to load transactions:', error)
+      set({ isLoading: false })
+    }
+  },
+
+  addTransaction: async (transactionData) => {
+    try {
+      const newTransaction: Transaction = {
+        ...transactionData,
+        id: `transaction-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+
+      await transactionDB.add(newTransaction)
+      set((state) => ({ transactions: [...state.transactions, newTransaction] }))
+    } catch (error) {
+      console.error('Failed to add transaction:', error)
+      throw error
+    }
+  },
+
+  updateTransaction: async (id, updates) => {
+    try {
+      const currentTransaction = get().transactions.find(t => t.id === id)
+      if (!currentTransaction) {
+        throw new Error('Transaction not found')
+      }
+
+      const updatedTransaction = {
+        ...currentTransaction,
+        ...updates,
+        updatedAt: new Date().toISOString()
+      }
+
+      await transactionDB.update(updatedTransaction)
+      set((state) => ({
+        transactions: state.transactions.map((transaction) =>
+          transaction.id === id ? updatedTransaction : transaction
+        ),
+      }))
+    } catch (error) {
+      console.error('Failed to update transaction:', error)
+      throw error
+    }
+  },
+
+  deleteTransaction: async (id) => {
+    try {
+      await transactionDB.delete(id)
+      set((state) => ({
+        transactions: state.transactions.filter((transaction) => transaction.id !== id),
+      }))
+    } catch (error) {
+      console.error('Failed to delete transaction:', error)
+      throw error
+    }
+  },
+
+  getTransactionById: (id) => {
+    return get().transactions.find((transaction) => transaction.id === id)
+  },
+
+  getTransactionsByBudget: (budgetId) => {
+    return get().transactions.filter((transaction) => transaction.budgetId === budgetId)
+  },
+
+  getTransactionsByDateRange: (startDate, endDate) => {
+    return get().transactions.filter((transaction) => {
+      const transactionDate = new Date(transaction.date)
+      return transactionDate >= new Date(startDate) && transactionDate <= new Date(endDate)
+    })
+  },
+}))

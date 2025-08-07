@@ -86,7 +86,13 @@ export function TransactionList({ transactions }: TransactionListProps) {
                 <p className="text-sm text-gray-500">{formatDate(transaction.date)}</p>
               </div>
               <button
-                onClick={() => deleteTransaction(transaction.id)}
+                onClick={async () => {
+                  try {
+                    await deleteTransaction(transaction.id)
+                  } catch (error) {
+                    console.error('Failed to delete transaction:', error)
+                  }
+                }}
                 className="text-gray-400 hover:text-red-500 p-1"
               >
                 🗑️

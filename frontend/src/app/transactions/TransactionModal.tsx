@@ -21,35 +21,40 @@ export function TransactionModal({ isOpen, onClose }: TransactionModalProps) {
     tags: [] as string[],
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.description || !formData.amount || !formData.category) {
       return
     }
 
-    addTransaction({
-      description: formData.description,
-      amount: Number(formData.amount),
-      category: formData.category,
-      type: formData.type,
-      transactionType: formData.transactionType,
-      date: formData.date,
-      budgetId: formData.budgetId || undefined,
-      tags: formData.tags,
-    })
+    try {
+      await addTransaction({
+        description: formData.description,
+        amount: Number(formData.amount),
+        category: formData.category,
+        type: formData.type,
+        transactionType: formData.transactionType,
+        date: formData.date,
+        budgetId: formData.budgetId || undefined,
+        tags: formData.tags,
+      })
 
-    // フォームをリセット
-    setFormData({
-      description: '',
-      amount: '',
-      category: '',
-      type: 'expense',
-      transactionType: 'personal',
-      date: new Date().toISOString().split('T')[0],
-      budgetId: '',
-      tags: [],
-    })
-    onClose()
+      // フォームをリセット
+      setFormData({
+        description: '',
+        amount: '',
+        category: '',
+        type: 'expense',
+        transactionType: 'personal',
+        date: new Date().toISOString().split('T')[0],
+        budgetId: '',
+        tags: [],
+      })
+      onClose()
+    } catch (error) {
+      console.error('Failed to add transaction:', error)
+      // TODO: エラーメッセージを表示
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {

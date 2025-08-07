@@ -15,27 +15,32 @@ export function BudgetModal({ isOpen, onClose }: BudgetModalProps) {
     period: 'monthly' as 'monthly' | 'yearly',
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.name || !formData.amount || !formData.category) {
       return
     }
 
-    addBudget({
-      name: formData.name,
-      amount: Number(formData.amount),
-      category: formData.category,
-      period: formData.period,
-    })
+    try {
+      await addBudget({
+        name: formData.name,
+        amount: Number(formData.amount),
+        category: formData.category,
+        period: formData.period,
+      })
 
-    // フォームをリセット
-    setFormData({
-      name: '',
-      amount: '',
-      category: '',
-      period: 'monthly',
-    })
-    onClose()
+      // フォームをリセット
+      setFormData({
+        name: '',
+        amount: '',
+        category: '',
+        period: 'monthly',
+      })
+      onClose()
+    } catch (error) {
+      console.error('Failed to add budget:', error)
+      // TODO: エラーメッセージを表示
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
