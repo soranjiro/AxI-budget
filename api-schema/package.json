@@ -1,0 +1,16 @@
+{
+  "name": "@axi-budget/api-schema",
+  "version": "1.0.0",
+  "description": "AxI-budget API Schema定義と型生成",
+  "scripts": {
+    "generate": "npm run generate:frontend && npm run generate:backend",
+    "generate:frontend": "openapi-generator-cli generate -i openapi.yml -g typescript-axios -o ../frontend/src/generated/api --additional-properties=withInterfaces=true,enumPropertyNaming=UPPERCASE",
+    "generate:backend": "openapi-generator-cli generate -i openapi.yml -g rust -o ../backend/src/generated --additional-properties=packageName=axi_budget_api",
+    "validate": "swagger-codegen-cli validate -i openapi.yml",
+    "serve": "swagger-ui-serve openapi.yml"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.7.0",
+    "swagger-ui-serve": "^3.0.0"
+  }
+}

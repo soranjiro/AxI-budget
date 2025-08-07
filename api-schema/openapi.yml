@@ -1,0 +1,972 @@
+openapi: 3.0.3
+info:
+  title: AxI-budget API
+  description: 次世代スマート家計簿 PWA API
+  version: 1.0.0
+  contact:
+    name: AxI Development Team
+  license:
+    name: MIT
+
+servers:
+  - url: https://api.axi-budget.com/v1
+    description: 本番環境
+  - url: https://api-dev.axi-budget.com/v1
+    description: 開発環境
+
+security:
+  - FirebaseAuth: []
+
+paths:
+  # ユーザー管理
+  /users/profile:
+    get:
+      summary: ユーザープロフィール取得
+      tags: [Users]
+      responses:
+        '200':
+          description: ユーザープロフィール
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    put:
+      summary: ユーザープロフィール更新
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfileRequest'
+      responses:
+        '200':
+          description: 更新されたユーザープロフィール
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  # 取引管理
+  /transactions:
+    get:
+      summary: 取引一覧取得
+      tags: [Transactions]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/TransactionType'
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 取引一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListResponse'
+    post:
+      summary: 取引作成
+      tags: [Transactions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: 作成された取引
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+
+  /transactions/{transactionId}:
+    get:
+      summary: 取引詳細取得
+      tags: [Transactions]
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 取引詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+    put:
+      summary: 取引更新
+      tags: [Transactions]
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransactionRequest'
+      responses:
+        '200':
+          description: 更新された取引
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+    delete:
+      summary: 取引削除
+      tags: [Transactions]
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 削除完了
+
+  # 予算管理
+  /budgets:
+    get:
+      summary: 予算一覧取得
+      tags: [Budgets]
+      responses:
+        '200':
+          description: 予算一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Budget'
+    post:
+      summary: 予算作成
+      tags: [Budgets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBudgetRequest'
+      responses:
+        '201':
+          description: 作成された予算
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+
+  /budgets/{budgetId}:
+    put:
+      summary: 予算更新
+      tags: [Budgets]
+      parameters:
+        - name: budgetId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBudgetRequest'
+      responses:
+        '200':
+          description: 更新された予算
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+    delete:
+      summary: 予算削除
+      tags: [Budgets]
+      parameters:
+        - name: budgetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 削除完了
+
+  # 精算管理
+  /settlements:
+    get:
+      summary: 精算一覧取得
+      tags: [Settlements]
+      responses:
+        '200':
+          description: 精算一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Settlement'
+    post:
+      summary: 精算作成
+      tags: [Settlements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSettlementRequest'
+      responses:
+        '201':
+          description: 作成された精算
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+
+  /settlements/{settlementId}/complete:
+    post:
+      summary: 精算完了
+      tags: [Settlements]
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 完了した精算
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+
+  # グループ管理
+  /groups:
+    post:
+      summary: グループ作成
+      tags: [Groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupRequest'
+      responses:
+        '201':
+          description: 作成されたグループ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+
+  /groups/{groupId}:
+    get:
+      summary: グループ詳細取得
+      tags: [Groups]
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: グループ詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+
+  /groups/{groupId}/join:
+    post:
+      summary: グループ参加
+      tags: [Groups]
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinGroupRequest'
+      responses:
+        '200':
+          description: 参加したグループ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+
+  /groups/{groupId}/transactions:
+    get:
+      summary: グループ取引一覧取得
+      tags: [Groups]
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: グループ取引一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupTransaction'
+    post:
+      summary: グループ取引作成
+      tags: [Groups]
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGroupTransactionRequest'
+      responses:
+        '201':
+          description: 作成されたグループ取引
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupTransaction'
+
+  /groups/{groupId}/settlements/calculate:
+    post:
+      summary: グループ精算計算
+      tags: [Groups]
+      parameters:
+        - name: groupId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 最適精算プラン
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptimalSettlementPlan'
+
+  # レポート・分析
+  /reports/monthly:
+    get:
+      summary: 月次レポート取得
+      tags: [Reports]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        '200':
+          description: 月次レポート
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlyReport'
+
+components:
+  securitySchemes:
+    FirebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # エラーレスポンス
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+    # ユーザー関連
+    UserProfile:
+      type: object
+      required:
+        - userId
+        - createdAt
+        - updatedAt
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: string
+        currency:
+          type: string
+          default: 'JPY'
+        timezone:
+          type: string
+          default: 'Asia/Tokyo'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateUserProfileRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        currency:
+          type: string
+        timezone:
+          type: string
+
+    # 取引関連
+    TransactionType:
+      type: string
+      enum:
+        - REAL
+        - FLOW
+
+    TransactionCategory:
+      type: string
+      enum:
+        - FOOD
+        - TRANSPORTATION
+        - UTILITIES
+        - ENTERTAINMENT
+        - HEALTHCARE
+        - SHOPPING
+        - EDUCATION
+        - OTHER
+
+    Amount:
+      type: object
+      required:
+        - value
+        - currency
+      properties:
+        value:
+          type: integer
+          description: 金額（最小単位）
+        currency:
+          type: string
+          default: 'JPY'
+
+    Transaction:
+      type: object
+      required:
+        - transactionId
+        - userId
+        - type
+        - amount
+        - description
+        - category
+        - transactionDate
+        - createdAt
+        - updatedAt
+      properties:
+        transactionId:
+          type: string
+        userId:
+          type: string
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        amount:
+          $ref: '#/components/schemas/Amount'
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/TransactionCategory'
+        tags:
+          type: array
+          items:
+            type: string
+        transactionDate:
+          type: string
+          format: date
+        settlementInfo:
+          $ref: '#/components/schemas/SettlementInfo'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SettlementInfo:
+      type: object
+      properties:
+        settlementId:
+          type: string
+        creditorUserId:
+          type: string
+        debtorUserId:
+          type: string
+        status:
+          type: string
+          enum:
+            - PENDING
+            - COMPLETED
+
+    CreateTransactionRequest:
+      type: object
+      required:
+        - type
+        - amount
+        - description
+        - category
+      properties:
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        amount:
+          $ref: '#/components/schemas/Amount'
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/TransactionCategory'
+        tags:
+          type: array
+          items:
+            type: string
+        transactionDate:
+          type: string
+          format: date
+        settlementInfo:
+          $ref: '#/components/schemas/SettlementInfo'
+
+    UpdateTransactionRequest:
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Amount'
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/TransactionCategory'
+        tags:
+          type: array
+          items:
+            type: string
+        transactionDate:
+          type: string
+          format: date
+
+    TransactionListResponse:
+      type: object
+      required:
+        - transactions
+        - hasMore
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        hasMore:
+          type: boolean
+        nextCursor:
+          type: string
+
+    # 予算関連
+    Budget:
+      type: object
+      required:
+        - budgetId
+        - userId
+        - category
+        - amount
+        - period
+        - createdAt
+        - updatedAt
+      properties:
+        budgetId:
+          type: string
+        userId:
+          type: string
+        category:
+          $ref: '#/components/schemas/TransactionCategory'
+        amount:
+          $ref: '#/components/schemas/Amount'
+        period:
+          type: string
+          enum:
+            - MONTHLY
+            - YEARLY
+        alertThreshold:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.8
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateBudgetRequest:
+      type: object
+      required:
+        - category
+        - amount
+        - period
+      properties:
+        category:
+          $ref: '#/components/schemas/TransactionCategory'
+        amount:
+          $ref: '#/components/schemas/Amount'
+        period:
+          type: string
+          enum:
+            - MONTHLY
+            - YEARLY
+        alertThreshold:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    UpdateBudgetRequest:
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Amount'
+        alertThreshold:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    # 精算関連
+    Settlement:
+      type: object
+      required:
+        - settlementId
+        - creditorUserId
+        - debtorUserId
+        - amount
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        settlementId:
+          type: string
+        creditorUserId:
+          type: string
+        debtorUserId:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Amount'
+        description:
+          type: string
+        status:
+          type: string
+          enum:
+            - PENDING
+            - COMPLETED
+        completedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateSettlementRequest:
+      type: object
+      required:
+        - debtorUserId
+        - amount
+      properties:
+        debtorUserId:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Amount'
+        description:
+          type: string
+
+    # グループ関連
+    Group:
+      type: object
+      required:
+        - groupId
+        - name
+        - joinCode
+        - createdBy
+        - members
+        - createdAt
+        - updatedAt
+      properties:
+        groupId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        joinCode:
+          type: string
+          pattern: '^[A-Z0-9]{6}$'
+        createdBy:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupMember'
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GroupMember:
+      type: object
+      required:
+        - userId
+        - displayName
+        - joinedAt
+      properties:
+        userId:
+          type: string
+        displayName:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+
+    CreateGroupRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    JoinGroupRequest:
+      type: object
+      required:
+        - joinCode
+      properties:
+        joinCode:
+          type: string
+          pattern: '^[A-Z0-9]{6}$'
+
+    GroupTransaction:
+      type: object
+      required:
+        - transactionId
+        - groupId
+        - paidBy
+        - amount
+        - description
+        - participants
+        - createdAt
+        - updatedAt
+      properties:
+        transactionId:
+          type: string
+        groupId:
+          type: string
+        paidBy:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Amount'
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/TransactionCategory'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionParticipant'
+        transactionDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TransactionParticipant:
+      type: object
+      required:
+        - userId
+        - shareAmount
+      properties:
+        userId:
+          type: string
+        shareAmount:
+          $ref: '#/components/schemas/Amount'
+
+    CreateGroupTransactionRequest:
+      type: object
+      required:
+        - amount
+        - description
+        - participants
+      properties:
+        amount:
+          $ref: '#/components/schemas/Amount'
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/TransactionCategory'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionParticipant'
+        transactionDate:
+          type: string
+          format: date
+
+    OptimalSettlementPlan:
+      type: object
+      required:
+        - groupId
+        - settlements
+        - totalTransfers
+      properties:
+        groupId:
+          type: string
+        settlements:
+          type: array
+          items:
+            $ref: '#/components/schemas/OptimalSettlement'
+        totalTransfers:
+          type: integer
+
+    OptimalSettlement:
+      type: object
+      required:
+        - fromUserId
+        - toUserId
+        - amount
+      properties:
+        fromUserId:
+          type: string
+        toUserId:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Amount'
+
+    # レポート関連
+    MonthlyReport:
+      type: object
+      required:
+        - year
+        - month
+        - totalIncome
+        - totalExpense
+        - categoryBreakdown
+        - budgetComparison
+      properties:
+        year:
+          type: integer
+        month:
+          type: integer
+        totalIncome:
+          $ref: '#/components/schemas/Amount'
+        totalExpense:
+          $ref: '#/components/schemas/Amount'
+        categoryBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryExpense'
+        budgetComparison:
+          type: array
+          items:
+            $ref: '#/components/schemas/BudgetComparison'
+
+    CategoryExpense:
+      type: object
+      required:
+        - category
+        - amount
+        - percentage
+      properties:
+        category:
+          $ref: '#/components/schemas/TransactionCategory'
+        amount:
+          $ref: '#/components/schemas/Amount'
+        percentage:
+          type: number
+
+    BudgetComparison:
+      type: object
+      required:
+        - category
+        - budgetAmount
+        - actualAmount
+        - percentage
+      properties:
+        category:
+          $ref: '#/components/schemas/TransactionCategory'
+        budgetAmount:
+          $ref: '#/components/schemas/Amount'
+        actualAmount:
+          $ref: '#/components/schemas/Amount'
+        percentage:
+          type: number
