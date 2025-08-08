@@ -44,24 +44,9 @@ output "cloudfront_domain_name" {
   value       = aws_cloudfront_distribution.main.domain_name
 }
 
-output "api_gateway_rest_api_id" {
-  description = "API Gateway REST API ID"
-  value       = aws_api_gateway_rest_api.budget_api.id
-}
-
-output "api_gateway_deployment_id" {
-  description = "API Gateway deployment ID"
-  value       = aws_api_gateway_deployment.budget_api.id
-}
-
-output "api_gateway_stage_name" {
-  description = "API Gateway stage name"
-  value       = aws_api_gateway_stage.budget_api_stage.stage_name
-}
-
-output "api_gateway_invoke_url" {
-  description = "API Gateway invoke URL"
-  value       = "https://${aws_api_gateway_rest_api.budget_api.id}.execute-api.${data.aws_region.current.name}.amazonaws.com/${var.environment}"
+output "lambda_function_url" {
+  description = "Lambda function URL for direct HTTP access"
+  value       = aws_lambda_function_url.budget_api.function_url
 }
 
 # Data sources required for outputs

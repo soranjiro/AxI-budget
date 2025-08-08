@@ -36,8 +36,8 @@ resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
           "dynamodb:BatchWriteItem"
         ]
         Resource = [
-          var.dynamodb_table_arn,
-          "${var.dynamodb_table_arn}/index/*"
+          aws_dynamodb_table.main.arn,
+          "${aws_dynamodb_table.main.arn}/index/*"
         ]
       }
     ]
@@ -62,7 +62,7 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      DYNAMODB_TABLE_NAME = var.dynamodb_table_name
+      DYNAMODB_TABLE_NAME = aws_dynamodb_table.main.name
       ENVIRONMENT         = var.environment
     }
   }

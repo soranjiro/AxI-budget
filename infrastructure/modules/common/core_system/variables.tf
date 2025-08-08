@@ -61,16 +61,3 @@ variable "cloudfront_price_class" {
   type        = string
   default     = "PriceClass_100"
 }
-
-# API Gateway and Lambda integration
-variable "lambda_invoke_arn" {
-  description = "Lambda function invoke ARN for API Gateway integration"
-  type        = string
-  default     = ""
-}
-
-variable "lambda_function_name" {
-  description = "Lambda function name for API Gateway permission"
-  type        = string
-  default     = ""
-}

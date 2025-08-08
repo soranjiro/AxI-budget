@@ -59,10 +59,6 @@ module "core_system" {
   s3_bucket_name         = local.s3_bucket_name
   s3_website_endpoint    = local.s3_website_endpoint
   cloudfront_price_class = "PriceClass_100" # Use cost-effective settings for staging
-
-  # API Gateway and Lambda integration (remove circular dependency)
-  lambda_invoke_arn    = ""
-  lambda_function_name = ""
 }
 
 # Cognito Module

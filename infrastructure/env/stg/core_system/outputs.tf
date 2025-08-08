@@ -39,14 +39,9 @@ output "cloudfront_domain_name" {
   value       = module.core_system.cloudfront_domain_name
 }
 
-output "api_gateway_rest_api_id" {
-  description = "API Gateway REST API ID"
-  value       = module.core_system.api_gateway_rest_api_id
-}
-
-output "api_gateway_invoke_url" {
-  description = "API Gateway invoke URL"
-  value       = module.core_system.api_gateway_invoke_url
+output "lambda_function_url" {
+  description = "Lambda function URL for direct HTTP access"
+  value       = module.core_system.lambda_function_url
 }
 
 # Cognito Outputs
