@@ -1,4 +1,13 @@
-import { initDB, transactionDB, budgetDB, authDB } from './indexedDB'
+import {
+  initDB,
+  transactionDB,
+  budgetDB,
+  authDB,
+  accountDB,
+  categoryDB,
+  accountTypeDB
+} from './indexedDB';
+import { DEFAULT_CATEGORIES, DEFAULT_ACCOUNT_TYPES } from '../types';
 
 /**
  * Development utilities for IndexedDB debugging
@@ -11,30 +20,46 @@ export const indexedDBUtils = {
    */
   async logAllData() {
     if (process.env.NODE_ENV !== 'development') {
-      console.warn('IndexedDB utils are only available in development mode')
-      return
+      console.warn('IndexedDB utils are only available in development mode');
+      return;
     }
 
     try {
-      await initDB()
+      await initDB();
 
-      console.group('📊 IndexedDB Data')
+      console.group('📊 AxI-budget データベース情報');
 
-      const transactions = await transactionDB.getAll()
-      console.log('📝 Transactions:', transactions)
+      const transactions = await transactionDB.getAll();
+      console.log('💰 取引データ:', transactions);
 
-      const budgets = await budgetDB.getAll()
-      console.log('💰 Budgets:', budgets)
+      const budgets = await budgetDB.getAll();
+      console.log('�� 予算データ:', budgets);
 
-      const authKeys = ['axi-budget-auth']
+      const accounts = await accountDB.getAll();
+      console.log('🏦 口座データ:', accounts);
+
+      const categories = await categoryDB.getAll();
+      console.log('📝 カテゴリデータ:', categories);
+
+      const accountTypes = await accountTypeDB.getAll();
+      console.log('🏷️ 口座タイプデータ:', accountTypes);
+
+      const authKeys = ['axi-budget-auth'];
       for (const key of authKeys) {
-        const authData = await authDB.get(key)
-        console.log(`🔐 Auth (${key}):`, authData)
+        const authData = await authDB.get(key);
+        console.log(`🔐 認証データ (\${key}):`, authData);
       }
 
-      console.groupEnd()
+      console.log('\\n📈 統計情報:');
+      console.log(`- 取引件数: \${transactions.length}`);
+      console.log(`- 予算件数: \${budgets.length}`);
+      console.log(`- 口座件数: \${accounts.length}`);
+      console.log(`- カテゴリ件数: \${categories.length}`);
+      console.log(`- 口座タイプ件数: \${accountTypes.length}`);
+
+      console.groupEnd();
     } catch (error) {
-      console.error('Failed to log IndexedDB data:', error)
+      console.error('データの取得に失敗しました:', error);
     }
   },
 
@@ -43,121 +68,46 @@ export const indexedDBUtils = {
    */
   async clearAllData() {
     if (process.env.NODE_ENV !== 'development') {
-      console.warn('IndexedDB utils are only available in development mode')
-      return
+      console.warn('IndexedDB utils are only available in development mode');
+      return;
+    }
+
+    if (!window.confirm('⚠️ 全データを削除します。この操作は取り消せません。続行しますか？')) {
+      return;
     }
 
     try {
-      await initDB()
+      await initDB();
 
       await Promise.all([
         transactionDB.clear(),
         budgetDB.clear(),
-        authDB.clear(),
-      ])
+        accountDB.clear(),
+        categoryDB.clear(),
+        accountTypeDB.clear(),
+        authDB.clear()
+      ]);
 
-      console.log('🗑️ All IndexedDB data cleared')
+      console.log('✅ 全データを削除しました');
+      alert('データが削除されました。ページをリロードします。');
+      window.location.reload();
     } catch (error) {
-      console.error('Failed to clear IndexedDB data:', error)
-    }
-  },
-
-  /**
-   * Export all data as JSON
-   */
-  async exportData() {
-    if (process.env.NODE_ENV !== 'development') {
-      console.warn('IndexedDB utils are only available in development mode')
-      return
-    }
-
-    try {
-      await initDB()
-
-      const data = {
-        transactions: await transactionDB.getAll(),
-        budgets: await budgetDB.getAll(),
-        auth: await authDB.get('axi-budget-auth'),
-        exportedAt: new Date().toISOString(),
-      }
-
-      console.log('📤 Exported data:', data)
-      return data
-    } catch (error) {
-      console.error('Failed to export IndexedDB data:', error)
-    }
-  },
-
-  /**
-   * Import sample data for testing
-   */
-  async importSampleData() {
-    if (process.env.NODE_ENV !== 'development') {
-      console.warn('IndexedDB utils are only available in development mode')
-      return
-    }
-
-    try {
-      await initDB()
-
-      // Sample transactions
-      const sampleTransactions = [
-        {
-          id: 'sample-tx-1',
-          description: 'サンプル取引 - ランチ',
-          amount: 1200,
-          category: '食費',
-          type: 'expense' as const,
-          transactionType: 'personal' as const,
-          date: new Date().toISOString().split('T')[0],
-          tags: ['ランチ'],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'sample-tx-2',
-          description: 'サンプル取引 - 電車代',
-          amount: 300,
-          category: '交通費',
-          type: 'expense' as const,
-          transactionType: 'personal' as const,
-          date: new Date().toISOString().split('T')[0],
-          tags: ['通勤'],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]
-
-      // Sample budgets
-      const sampleBudgets = [
-        {
-          id: 'sample-budget-1',
-          name: 'サンプル予算 - 食費',
-          amount: 50000,
-          category: '食費',
-          period: 'monthly' as const,
-          spent: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]
-
-      for (const transaction of sampleTransactions) {
-        await transactionDB.add(transaction)
-      }
-
-      for (const budget of sampleBudgets) {
-        await budgetDB.add(budget)
-      }
-
-      console.log('📥 Sample data imported successfully')
-    } catch (error) {
-      console.error('Failed to import sample data:', error)
+      console.error('データの削除に失敗しました:', error);
     }
   }
+};
+
+// 開発環境でのみグローバルに公開
+if (process.env.NODE_ENV === 'development') {
+  (window as any).debugDB = indexedDBUtils;
+  console.log(`
+🎯 AxI-budget デバッグユーティリティが利用可能です:
+
+debugDB.logAllData()         // 全データの確認
+debugDB.clearAllData()       // 全データの削除
+
+開発者コンソールで上記のコマンドを実行してください。
+  `);
 }
 
-// Make utils available globally in development
-if (process.env.NODE_ENV === 'development') {
-  ;(window as any).indexedDBUtils = indexedDBUtils
-}
+export default indexedDBUtils;

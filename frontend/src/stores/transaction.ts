@@ -1,31 +1,20 @@
 import { create } from 'zustand'
+import { Transaction, TransactionInput } from '../types'
 import { initDB, transactionDB } from '../utils/indexedDB'
-
-export interface Transaction {
-  id: string
-  description: string
-  amount: number
-  category: string
-  type: 'expense' | 'income'
-  transactionType: 'personal' | 'advance' // 実支出 or 立て替え
-  date: string
-  tags: string[]
-  budgetId?: string
-  createdAt: string
-  updatedAt: string
-}
 
 interface TransactionState {
   transactions: Transaction[]
   isLoading: boolean
   isInitialized: boolean
   initStore: () => Promise<void>
-  addTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
+  addTransaction: (transaction: TransactionInput) => Promise<void>
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>
   deleteTransaction: (id: string) => Promise<void>
   getTransactionById: (id: string) => Transaction | undefined
   getTransactionsByBudget: (budgetId: string) => Transaction[]
   getTransactionsByDateRange: (startDate: string, endDate: string) => Transaction[]
+  getTransactionsByAccount: (accountId: string) => Transaction[]
+  getIncludedInBudgetTransactions: () => Transaction[]
   loadTransactions: () => Promise<void>
 }
 
@@ -124,5 +113,15 @@ export const useTransactionStore = create<TransactionState>()((set, get) => ({
       const transactionDate = new Date(transaction.date)
       return transactionDate >= new Date(startDate) && transactionDate <= new Date(endDate)
     })
+  },
+
+  getTransactionsByAccount: (accountId) => {
+    return get().transactions.filter((transaction) =>
+      transaction.accountId === accountId || transaction.toAccountId === accountId
+    )
+  },
+
+  getIncludedInBudgetTransactions: () => {
+    return get().transactions.filter((transaction) => transaction.isIncludedInBudget)
   },
 }))

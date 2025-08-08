@@ -1,23 +1,13 @@
 import { create } from 'zustand'
+import { Budget, BudgetInput } from '../types'
 import { initDB, budgetDB } from '../utils/indexedDB'
-
-export interface Budget {
-  id: string
-  name: string
-  amount: number
-  category: string
-  period: 'monthly' | 'yearly'
-  spent: number
-  createdAt: string
-  updatedAt: string
-}
 
 interface BudgetState {
   budgets: Budget[]
   isLoading: boolean
   isInitialized: boolean
   initStore: () => Promise<void>
-  addBudget: (budget: Omit<Budget, 'id' | 'spent' | 'createdAt' | 'updatedAt'>) => Promise<void>
+  addBudget: (budget: BudgetInput) => Promise<void>
   updateBudget: (id: string, updates: Partial<Budget>) => Promise<void>
   deleteBudget: (id: string) => Promise<void>
   getBudgetById: (id: string) => Budget | undefined

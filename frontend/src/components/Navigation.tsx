@@ -31,6 +31,11 @@ const navigationItems = [
     href: '/reports',
     icon: '📈',
   },
+  {
+    name: '設定',
+    href: '/settings',
+    icon: '⚙️',
+  },
 ]
 
 export function Navigation() {

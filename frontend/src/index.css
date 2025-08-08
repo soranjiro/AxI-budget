@@ -5,51 +5,128 @@
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 text-gray-900;
+    /* Prevent overscroll on mobile */
+    overscroll-behavior: none;
+  }
+
+  /* Improve touch targets on mobile */
+  @media (pointer: coarse) {
+    button, a {
+      min-height: 44px;
+      min-width: 44px;
+    }
   }
 }
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply px-4 py-2 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-sm;
+    /* Improve tap targets on mobile */
+    @apply min-h-[44px] flex items-center justify-center;
   }
 
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply btn bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500 shadow-lg hover:shadow-xl transform hover:scale-105;
   }
 
   .btn-secondary {
-    @apply btn bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
+    @apply btn bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500 hover:shadow-md;
   }
 
   .btn-success {
-    @apply btn bg-success-600 text-white hover:bg-success-700 focus:ring-success-500;
+    @apply btn bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800 focus:ring-green-500 shadow-lg hover:shadow-xl transform hover:scale-105;
   }
 
   .btn-danger {
-    @apply btn bg-danger-600 text-white hover:bg-danger-700 focus:ring-danger-500;
+    @apply btn bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 focus:ring-red-500 shadow-lg hover:shadow-xl transform hover:scale-105;
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+    @apply bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-4 sm:p-6 hover:shadow-xl transition-all duration-300;
+  }
+
+  .card-glass {
+    @apply bg-white/70 backdrop-blur-md rounded-2xl shadow-xl border border-white/30 p-4 sm:p-6 hover:shadow-2xl transition-all duration-300;
   }
 
   .input {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-200;
+    /* Improve mobile input experience */
+    @apply text-base; /* Prevents zoom on iOS */
   }
 
   .input-error {
-    @apply input border-danger-300 focus:ring-danger-500;
+    @apply input border-red-300 focus:ring-red-500;
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-sm font-semibold text-gray-700 mb-2;
   }
 
   .error-message {
-    @apply text-sm text-danger-600 mt-1;
+    @apply text-sm text-red-600 mt-1;
+  }
+
+  .nav-item {
+    @apply flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-700;
+    /* Better mobile touch targets */
+    @apply min-h-[48px];
+  }
+
+  .nav-item-active {
+    @apply nav-item bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 shadow-sm;
+  }
+
+  .glass-bg {
+    @apply bg-white/20 backdrop-blur-lg border border-white/30;
+  }
+
+  /* Mobile-specific utilities */
+  .mobile-menu-item {
+    @apply flex items-center px-4 py-4 text-base font-semibold transition-all duration-200;
+    @apply min-h-[56px]; /* Larger touch targets for mobile */
+  }
+
+  .mobile-safe-area {
+    @apply pb-safe-bottom;
+  }
+
+  /* Scroll improvements */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.7);
+  }
+
+  /* Focus styles for accessibility */
+  .focus-visible {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  }
+
+  /* Animation utilities */
+  .animate-in {
+    animation-fill-mode: both;
   }
 }

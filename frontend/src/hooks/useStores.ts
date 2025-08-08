@@ -1,6 +1,9 @@
 import { useEffect } from 'react'
 import { useTransactionStore } from '../stores/transaction'
 import { useBudgetStore } from '../stores/budget'
+import { useAccountStore } from '../stores/account'
+import { useCategoryStore } from '../stores/category'
+import { useAccountTypeStore } from '../stores/accountType'
 
 /**
  * Hook to initialize all IndexedDB stores
@@ -9,6 +12,9 @@ import { useBudgetStore } from '../stores/budget'
 export const useInitializeStores = () => {
   const initTransactionStore = useTransactionStore(state => state.initStore)
   const initBudgetStore = useBudgetStore(state => state.initStore)
+  const initAccountStore = useAccountStore(state => state.initStore)
+  const initCategoryStore = useCategoryStore(state => state.initStore)
+  const initAccountTypeStore = useAccountTypeStore(state => state.initStore)
 
   useEffect(() => {
     const initializeAllStores = async () => {
@@ -16,6 +22,9 @@ export const useInitializeStores = () => {
         await Promise.all([
           initTransactionStore(),
           initBudgetStore(),
+          initAccountStore(),
+          initCategoryStore(),
+          initAccountTypeStore(),
         ])
         console.log('All stores initialized successfully')
       } catch (error) {
@@ -24,7 +33,7 @@ export const useInitializeStores = () => {
     }
 
     initializeAllStores()
-  }, [initTransactionStore, initBudgetStore])
+  }, [initTransactionStore, initBudgetStore, initAccountStore, initCategoryStore, initAccountTypeStore])
 }
 
 /**
@@ -33,11 +42,18 @@ export const useInitializeStores = () => {
 export const useStoresStatus = () => {
   const transactionLoading = useTransactionStore(state => state.isLoading)
   const budgetLoading = useBudgetStore(state => state.isLoading)
+  const accountLoading = useAccountStore(state => state.isLoading)
+  const categoryLoading = useCategoryStore(state => state.isLoading)
+  const accountTypeLoading = useAccountTypeStore(state => state.isLoading)
+
   const transactionInitialized = useTransactionStore(state => state.isInitialized)
   const budgetInitialized = useBudgetStore(state => state.isInitialized)
+  const accountInitialized = useAccountStore(state => state.isInitialized)
+  const categoryInitialized = useCategoryStore(state => state.isInitialized)
+  const accountTypeInitialized = useAccountTypeStore(state => state.isInitialized)
 
   return {
-    isLoading: transactionLoading || budgetLoading,
-    isInitialized: transactionInitialized && budgetInitialized,
+    isLoading: transactionLoading || budgetLoading || accountLoading || categoryLoading || accountTypeLoading,
+    isInitialized: transactionInitialized && budgetInitialized && accountInitialized && categoryInitialized && accountTypeInitialized,
   }
 }

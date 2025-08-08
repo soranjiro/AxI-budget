@@ -25,6 +25,7 @@ const DB_CONFIG: DBConfig = {
         { name: 'category', keyPath: 'category' },
         { name: 'type', keyPath: 'type' },
         { name: 'transactionType', keyPath: 'transactionType' },
+        { name: 'accountId', keyPath: 'accountId' },
         { name: 'budgetId', keyPath: 'budgetId' },
         { name: 'createdAt', keyPath: 'createdAt' }
       ]
@@ -35,6 +36,33 @@ const DB_CONFIG: DBConfig = {
       indexes: [
         { name: 'category', keyPath: 'category' },
         { name: 'period', keyPath: 'period' },
+        { name: 'createdAt', keyPath: 'createdAt' }
+      ]
+    },
+    {
+      name: 'accounts',
+      keyPath: 'id',
+      indexes: [
+        { name: 'type', keyPath: 'type' },
+        { name: 'isActive', keyPath: 'isActive' },
+        { name: 'createdAt', keyPath: 'createdAt' }
+      ]
+    },
+    {
+      name: 'categories',
+      keyPath: 'id',
+      indexes: [
+        { name: 'name', keyPath: 'name' },
+        { name: 'isActive', keyPath: 'isActive' },
+        { name: 'createdAt', keyPath: 'createdAt' }
+      ]
+    },
+    {
+      name: 'accountTypes',
+      keyPath: 'id',
+      indexes: [
+        { name: 'type', keyPath: 'type' },
+        { name: 'isActive', keyPath: 'isActive' },
         { name: 'createdAt', keyPath: 'createdAt' }
       ]
     },
@@ -258,4 +286,35 @@ export const authDB = {
   get: (key: string) => dbManager.get('auth', key),
   delete: (key: string) => dbManager.delete('auth', key),
   clear: () => dbManager.clear('auth')
+}
+
+export const accountDB = {
+  add: (account: any) => dbManager.add('accounts', account),
+  update: (account: any) => dbManager.put('accounts', account),
+  get: (id: string) => dbManager.get('accounts', id),
+  getAll: () => dbManager.getAll('accounts'),
+  delete: (id: string) => dbManager.delete('accounts', id),
+  getByType: (type: string) => dbManager.getByIndex('accounts', 'type', type),
+  getActive: () => dbManager.getByIndex('accounts', 'isActive', 'true'),
+  clear: () => dbManager.clear('accounts')
+}
+
+export const categoryDB = {
+  add: (category: any) => dbManager.add('categories', category),
+  update: (category: any) => dbManager.put('categories', category),
+  get: (id: string) => dbManager.get('categories', id),
+  getAll: () => dbManager.getAll('categories'),
+  delete: (id: string) => dbManager.delete('categories', id),
+  getActive: () => dbManager.getByIndex('categories', 'isActive', 'true'),
+  clear: () => dbManager.clear('categories')
+}
+
+export const accountTypeDB = {
+  add: (accountType: any) => dbManager.add('accountTypes', accountType),
+  update: (accountType: any) => dbManager.put('accountTypes', accountType),
+  get: (id: string) => dbManager.get('accountTypes', id),
+  getAll: () => dbManager.getAll('accountTypes'),
+  delete: (id: string) => dbManager.delete('accountTypes', id),
+  getActive: () => dbManager.getByIndex('accountTypes', 'isActive', 'true'),
+  clear: () => dbManager.clear('accountTypes')
 }
