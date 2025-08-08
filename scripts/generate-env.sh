@@ -19,7 +19,7 @@ echo "🔧 Generating environment variables for ${ENVIRONMENT} environment..."
 cd "$(dirname "$0")/.."
 
 # Terraformディレクトリ
-TERRAFORM_DIR="infrastructure/env/${ENVIRONMENT}/core_system"
+TERRAFORM_DIR="terraform/env/${ENVIRONMENT}/core_system"
 
 if [ ! -d "$TERRAFORM_DIR" ]; then
     echo "Error: Terraform directory $TERRAFORM_DIR not found"

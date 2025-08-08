@@ -1,4 +1,5 @@
-import { useTransactionStore, Transaction } from '@/stores/transaction'
+import { useTransactionStore } from '@/stores/transaction'
+import { Transaction } from '@/types'
 import { useBudgetStore } from '@/stores/budget'
 
 interface TransactionListProps {

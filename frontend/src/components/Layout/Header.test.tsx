@@ -24,22 +24,22 @@ describe('Header', () => {
   })
 
   it('renders header with app title', () => {
-    render(<Header />)
+    render(<Header onMobileMenuClick={() => {}} isMobileMenuOpen={false} />)
     expect(screen.getByText('AxI Budget')).toBeInTheDocument()
   })
 
   it('displays user information when authenticated', () => {
-    render(<Header />)
+    render(<Header onMobileMenuClick={() => {}} isMobileMenuOpen={false} />)
     expect(screen.getByText('Test User')).toBeInTheDocument()
   })
 
   it('renders logout button', () => {
-    render(<Header />)
+    render(<Header onMobileMenuClick={() => {}} isMobileMenuOpen={false} />)
     expect(screen.getByText('ログアウト')).toBeInTheDocument()
   })
 
   it('calls signOut when logout button is clicked', () => {
-    render(<Header />)
+    render(<Header onMobileMenuClick={() => {}} isMobileMenuOpen={false} />)
     const logoutButton = screen.getByText('ログアウト')
     fireEvent.click(logoutButton)
     expect(mockSignOut).toHaveBeenCalled()

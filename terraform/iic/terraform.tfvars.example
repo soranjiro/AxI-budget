@@ -1,0 +1,106 @@
+# AWS IAM Identity Center と Organizations の使用例
+# 実際の本番環境では、この内容を terraform.tfvars ファイルに設定してください
+
+# AWS アカウント設定の例
+accounts = {
+  prod = {
+    name                = "axi-budget-prod"
+    email               = "axi-budget-prod@yourdomain.com"  # 実際のメールアドレスに変更
+    organizational_unit = "workloads"
+    tags = {
+      Environment = "production"
+      Workload    = "axi-budget"
+      CostCenter  = "engineering"
+    }
+  }
+  stg = {
+    name                = "axi-budget-stg"
+    email               = "axi-budget-stg@yourdomain.com"   # 実際のメールアドレスに変更
+    organizational_unit = "workloads"
+    tags = {
+      Environment = "staging"
+      Workload    = "axi-budget"
+      CostCenter  = "engineering"
+    }
+  }
+}
+
+# Service Control Policy の例
+service_control_policies = {
+  deny_root_user = {
+    name        = "DenyRootUserAccess"
+    description = "Deny root user access for member accounts"
+    targets     = ["workloads"]
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Sid      = "DenyRootUserAccess"
+          Effect   = "Deny"
+          Principal = {
+            AWS = "*"
+          }
+          Action   = "*"
+          Resource = "*"
+          Condition = {
+            StringEquals = {
+              "aws:PrincipalType" = "Root"
+            }
+          }
+        }
+      ]
+    })
+  }
+
+  require_mfa = {
+    name        = "RequireMFAForConsole"
+    description = "Require MFA for console access"
+    targets     = ["workloads"]
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+        {
+          Sid    = "DenyAllExceptListedIfNoMFA"
+          Effect = "Deny"
+          NotAction = [
+            "iam:CreateVirtualMFADevice",
+            "iam:EnableMFADevice",
+            "iam:GetUser",
+            "iam:ListMFADevices",
+            "iam:ListVirtualMFADevices",
+            "iam:ResyncMFADevice",
+            "sts:GetSessionToken"
+          ]
+          Resource = "*"
+          Condition = {
+            BoolIfExists = {
+              "aws:MultiFactorAuthPresent" = "false"
+            }
+          }
+        }
+      ]
+    })
+  }
+}
+
+# IAM Identity Center ユーザー設定の例（実際の運用では別途管理することを推奨）
+users = {
+  "admin.user" = {
+    given_name  = "Admin"
+    family_name = "User"
+    email       = "admin@yourdomain.com"
+    groups      = ["axi-budget-prod-admin", "axi-budget-stg-admin"]
+  }
+  "dev.user" = {
+    given_name  = "Developer"
+    family_name = "User"
+    email       = "dev@yourdomain.com"
+    groups      = ["axi-budget-stg-mgmt"]
+  }
+  "readonly.user" = {
+    given_name  = "ReadOnly"
+    family_name = "User"
+    email       = "readonly@yourdomain.com"
+    groups      = ["axi-budget-prod-readonly", "axi-budget-stg-readonly"]
+  }
+}

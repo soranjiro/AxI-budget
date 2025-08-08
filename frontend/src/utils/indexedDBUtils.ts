@@ -7,7 +7,6 @@ import {
   categoryDB,
   accountTypeDB
 } from './indexedDB';
-import { DEFAULT_CATEGORIES, DEFAULT_ACCOUNT_TYPES } from '../types';
 
 /**
  * Development utilities for IndexedDB debugging

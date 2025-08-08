@@ -45,7 +45,7 @@ export function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Mobile Tab Navigation */}
-      <MobileTabNavigation onMenuClick={handleMobileMenuToggle} />
+      <MobileTabNavigation onMenuToggle={handleMobileMenuToggle} />
     </div>
   )
 }

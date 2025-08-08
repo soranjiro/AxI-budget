@@ -1,5 +1,4 @@
-import { Transaction } from '@/stores/transaction'
-import { Budget } from '@/stores/budget'
+import { Transaction, Budget } from '@/types'
 
 export interface MonthlyData {
   month: string
@@ -94,10 +93,10 @@ export class ReportAnalyzer {
       return acc
     }, {} as Record<string, number>)
 
-    const totalExpense = Object.values(categoryTotals).reduce((sum, amount) => sum + amount, 0)
+    const totalExpense = Object.values(categoryTotals).reduce((sum: number, amount: number) => sum + amount, 0)
 
     return Object.entries(categoryTotals)
-      .map(([category, amount]) => ({
+      .map(([category, amount]: [string, number]) => ({
         category,
         amount,
         percentage: totalExpense > 0 ? (amount / totalExpense) * 100 : 0,

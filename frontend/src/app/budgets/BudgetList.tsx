@@ -1,4 +1,5 @@
-import { useBudgetStore, Budget } from '@/stores/budget'
+import { useBudgetStore } from '@/stores/budget'
+import { Budget } from '@/types'
 import { useTransactionStore } from '@/stores/transaction'
 
 interface BudgetListProps {
