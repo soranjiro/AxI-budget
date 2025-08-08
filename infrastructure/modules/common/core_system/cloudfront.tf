@@ -1,8 +1,8 @@
 # CloudFront Distribution
 resource "aws_cloudfront_distribution" "main" {
   origin {
-    domain_name = var.s3_website_endpoint
-    origin_id   = "S3-${var.s3_bucket_name}"
+    domain_name = aws_s3_bucket_website_configuration.web_hosting.website_endpoint
+    origin_id   = "S3-${aws_s3_bucket.web_hosting.bucket}"
 
     custom_origin_config {
       http_port              = 80
@@ -19,7 +19,7 @@ resource "aws_cloudfront_distribution" "main" {
   default_cache_behavior {
     allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = "S3-${var.s3_bucket_name}"
+    target_origin_id       = "S3-${aws_s3_bucket.web_hosting.bucket}"
     compress               = true
     viewer_protocol_policy = "redirect-to-https"
 

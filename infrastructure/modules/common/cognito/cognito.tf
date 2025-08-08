@@ -216,3 +216,9 @@ resource "aws_cognito_identity_pool_roles_attachment" "main" {
     "unauthenticated" = aws_iam_role.unauthenticated.arn
   }
 }
+
+# Cognito User Pool Domain
+resource "aws_cognito_user_pool_domain" "main" {
+  domain       = "${var.project_name}-${var.environment}"
+  user_pool_id = aws_cognito_user_pool.main.id
+}

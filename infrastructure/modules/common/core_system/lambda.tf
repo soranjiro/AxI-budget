@@ -90,3 +90,18 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
   name              = "/aws/lambda/${var.project_name}-${var.environment}-api"
   retention_in_days = var.log_retention_days
 }
+
+# Lambda Function URL
+resource "aws_lambda_function_url" "budget_api" {
+  function_name      = aws_lambda_function.api.function_name
+  authorization_type = "NONE"
+
+  cors {
+    allow_credentials = true
+    allow_headers     = ["date", "keep-alive", "content-type", "authorization", "x-api-key"]
+    allow_methods     = ["*"]
+    allow_origins     = ["*"] # 本番環境では適切なドメインに制限することを推奨
+    expose_headers    = ["date", "keep-alive"]
+    max_age           = 86400
+  }
+}

@@ -33,9 +33,6 @@ data "aws_region" "current" {}
 
 # Local values
 locals {
-  s3_bucket_name      = "${var.project_name}-${var.environment}-static-website"
-  s3_website_endpoint = "${var.project_name}-${var.environment}-static-website.s3-website-${var.aws_region}.amazonaws.com"
-
   # Lambda function name for internal reference
   lambda_function_name = "${var.project_name}-${var.environment}-budget-api"
 }
@@ -55,9 +52,7 @@ module "core_system" {
   # Lambda configuration
   lambda_timeout = 30
 
-  # S3 and CloudFront configuration
-  s3_bucket_name         = local.s3_bucket_name
-  s3_website_endpoint    = local.s3_website_endpoint
+  # CloudFront configuration
   cloudfront_price_class = "PriceClass_100" # Use cost-effective settings for staging
 }
 

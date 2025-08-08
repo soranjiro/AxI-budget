@@ -59,3 +59,8 @@ output "cognito_identity_pool_id" {
   description = "Cognito Identity Pool ID"
   value       = module.cognito.identity_pool_id
 }
+
+output "cognito_domain" {
+  description = "Cognito domain endpoint"
+  value       = module.cognito.cognito_domain_endpoint
+}

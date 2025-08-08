@@ -46,16 +46,6 @@ variable "lambda_timeout" {
 }
 
 # S3 and CloudFront configuration
-variable "s3_bucket_name" {
-  description = "S3 bucket name for static website hosting"
-  type        = string
-}
-
-variable "s3_website_endpoint" {
-  description = "S3 website endpoint for CloudFront origin"
-  type        = string
-}
-
 variable "cloudfront_price_class" {
   description = "CloudFront price class"
   type        = string
