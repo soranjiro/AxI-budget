@@ -5,11 +5,11 @@
 ## 必要なプロファイル
 
 ### 本番環境
-- **プロファイル名**: `axi-budget-prod`
+- **プロファイル名**: `axi-budget-prod-mgmt`
 - **用途**: 本番環境のAWSリソース管理
 
 ### ステージング環境
-- **プロファイル名**: `axi-budget-stg`
+- **プロファイル名**: `axi-budget-stg-mgmt`
 - **用途**: ステージング環境のAWSリソース管理
 
 ## セットアップ手順
@@ -18,14 +18,14 @@
 
 ```bash
 # ステージング環境用プロファイル
-aws configure --profile axi-budget-stg
+aws configure --profile axi-budget-stg-mgmt
 # AWS Access Key ID [None]: YOUR_STG_ACCESS_KEY
 # AWS Secret Access Key [None]: YOUR_STG_SECRET_KEY
 # Default region name [None]: ap-northeast-1
 # Default output format [None]: json
 
 # 本番環境用プロファイル
-aws configure --profile axi-budget-prod
+aws configure --profile axi-budget-prod-mgmt
 # AWS Access Key ID [None]: YOUR_PROD_ACCESS_KEY
 # AWS Secret Access Key [None]: YOUR_PROD_SECRET_KEY
 # Default region name [None]: ap-northeast-1
@@ -39,12 +39,12 @@ aws configure --profile axi-budget-prod
 aws configure list-profiles
 
 # 特定のプロファイルの設定を確認
-aws configure list --profile axi-budget-stg
-aws configure list --profile axi-budget-prod
+aws configure list --profile axi-budget-stg-mgmt
+aws configure list --profile axi-budget-prod-mgmt
 
 # プロファイルでアカウント情報を確認
-aws sts get-caller-identity --profile axi-budget-stg
-aws sts get-caller-identity --profile axi-budget-prod
+aws sts get-caller-identity --profile axi-budget-stg-mgmt
+aws sts get-caller-identity --profile axi-budget-prod-mgmt
 ```
 
 ## Terraform実行時の注意事項
@@ -117,14 +117,14 @@ Error: failed to refresh cached credentials
 
 # 解決方法
 aws configure list-profiles
-aws configure --profile axi-budget-stg
+aws configure --profile axi-budget-stg-mgmt
 ```
 
 ### 権限エラーの確認
 ```bash
 # 現在の認証情報を確認
-aws sts get-caller-identity --profile axi-budget-stg
+aws sts get-caller-identity --profile axi-budget-stg-mgmt
 
 # 必要な権限があるかテスト
-aws s3 ls --profile axi-budget-stg
+aws s3 ls --profile axi-budget-stg-mgmt
 ```
